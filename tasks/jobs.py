@@ -1,26 +1,39 @@
 import time 
-from tasks.db import SessionLocal, Feedback
+from tasks.db import SessionLocal
+from tasks.schema import Feedback
 
-def dummy_job(name: str) -> str:
-    print(f"[worker] starting job for {name}.. ")
-    time.sleep(3)
+def process_feedback(feedback_id: str) -> str:
+    print(f"[worker] processing feedback {feedback_id}")
 
     session = SessionLocal()
     try:
-        entry = Feedback(
-            raw_input=f"Test feedback from {name}",
-            language="en",
-            district="TestDistrict",
-            topic="roads",
-            urgency="medium",
-            source_channel="text",
-            status="processed",
-        )
-        session.add(entry)
+        entry = session.get(Feedback, feedback_id)
+        if entry is None:
+            return f"No feedback found for id {feedback_id}"
+        
+        entry.status = "processing"
         session.commit()
-        result=f"Saved feedback id={entry.id} for {name}.."
+
+        time.sleep(3)
+
+        # dummy extraction for now.
+        entry.topic = "roads"
+        entry.district = "testdistrict"
+        entry.urgency = "medium"
+        entry.status = "processed"
+        session.commit()
+
+        result = f"Processed feedback id={feedback_id}"
+    except Exception as e:
+        session.rollback()
+        entry = session.get(Feedback, feedback_id)
+        if entry:
+            entry.status = "failed"
+            session.commit()
+        result = f"failed feedback for id={feedback_id}: {e}"
     finally:
         session.close()
 
     print(f"[worker] done: {result}")
+
     return result
