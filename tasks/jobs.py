@@ -1,6 +1,6 @@
-import time 
 from tasks.db import SessionLocal
 from tasks.schema import Feedback
+from tasks.extractions import extract_feedback_fields
 
 def process_feedback(feedback_id: str) -> str:
     print(f"[worker] processing feedback {feedback_id}")
@@ -14,23 +14,24 @@ def process_feedback(feedback_id: str) -> str:
         entry.status = "processing"
         session.commit()
 
-        time.sleep(3)
+        extracted = extract_feedback_fields(entry.raw_input)
 
-        # dummy extraction for now.
-        entry.topic = "roads"
-        entry.district = "testdistrict"
-        entry.urgency = "medium"
+        entry.topic = extracted.get("topic")
+        entry.district = extracted.get("district")
+        entry.urgency = extracted.get("urgency")
+        if not entry.language:
+            entry.language = extracted.get("language_detected")
         entry.status = "processed"
         session.commit()
 
-        result = f"Processed feedback id={feedback_id}"
+        result = f"Processed feedback id={feedback_id}: {extracted}"
+        print(f"[worker] done: {result}")
+        return result
+
     except Exception as e:
         session.rollback()
-        entry = session.get(Feedback, feedback_id)
-        if entry:
-            entry.status = "failed"
-            session.commit()
-        result = f"failed feedback for id={feedback_id}: {e}"
+        print(f"[worker] error processing {feedback_id}, will retry if attempts remain: {e}")
+        raise # re-raise so RQ's Retry mechanism triggers
     finally:
         session.close()
 

@@ -2,7 +2,7 @@ import uuid
 from fastapi import FastAPI 
 from pydantic import BaseModel
 import redis
-from rq import Queue
+from rq import Queue, Retry
 from tasks.jobs import process_feedback
 from tasks.db import SessionLocal 
 from tasks.schema import Feedback 
@@ -37,7 +37,7 @@ def submit_feedback(payload: FeedbackInput):
     finally:
         session.close()
 
-    queue.enqueue(process_feedback, feedback_id)
+    queue.enqueue(process_feedback, feedback_id, retry=Retry(max=3, interval=[10,30,60]))
 
     return {"id": feedback_id, "status": "received"}
 
