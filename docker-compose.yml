@@ -15,5 +15,33 @@ services:
     volumes:
       - setu_pgdata:/var/lib/postgresql/data
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api 
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env 
+    environment: 
+      DATABASE_URL: postgresql://setu:setu_dev_pass@postgres:5432/setu 
+      REDIS_HOST: redis 
+    depends_on:
+      - postgres 
+      - redis 
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker 
+    env_file:
+      - .env 
+    environment:
+      DATABASE_URL: postgresql://setu:setu_dev_pass@postgres:5432/setu 
+      REDIS_HOST: redis 
+    depends_on:
+      - postgres
+      - redis
+
 volumes:
   setu_pgdata:
