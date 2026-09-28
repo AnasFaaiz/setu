@@ -1,23 +1,19 @@
-import os
-import uuid 
-from fastapi import FastAPI 
+import uuid
+from fastapi import FastAPI
 from pydantic import BaseModel
-import redis
-from rq import Queue, Retry
-from tasks.jobs import process_feedback
-from tasks.db import SessionLocal 
-from tasks.schema import Feedback 
 from typing import Optional
+from tasks.db import SessionLocal
+from tasks.schema import Feedback
 
 app = FastAPI()
-redis_conn = redis.Redis(host=os.getenv("REDIS_HOST", "localhost"), port="6379")
-queue = Queue(connection=redis_conn)
+
 
 class FeedbackInput(BaseModel):
-    raw_input: str 
-    language: Optional[str]= None 
-    source_channel: str 
-    client_reference_id: Optional[str] = None 
+    raw_input: str
+    language: Optional[str] = None
+    source_channel: str
+    client_reference_id: Optional[str] = None
+
 
 @app.post("/submit-feedback")
 def submit_feedback(payload: FeedbackInput):
@@ -31,16 +27,15 @@ def submit_feedback(payload: FeedbackInput):
             language=payload.language,
             source_channel=payload.source_channel,
             client_reference_id=payload.client_reference_id,
-            status="received"
+            status="received",
         )
         session.add(entry)
         session.commit()
     finally:
         session.close()
 
-    queue.enqueue(process_feedback, feedback_id, retry=Retry(max=3, interval=[10,30,60]))
+    return {"id": feedback_id, "status": "received", "message": "Complaint logged. Awaiting AI triage."}
 
-    return {"id": feedback_id, "status": "received"}
 
 @app.get("/status/{feedback_id}")
 def status(feedback_id: str):
@@ -58,4 +53,3 @@ def status(feedback_id: str):
         }
     finally:
         session.close()
-

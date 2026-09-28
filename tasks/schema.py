@@ -17,6 +17,8 @@ class Feedback(Base):
     source_channel = Column(String)
     status = Column(String, default="received")
     created_at = Column(DateTime, default=datetime.utcnow)
+    attempts = Column(Integer, nullable=False, default=0, server_default="0")
+    error_reason = Column(Text, nullable=True)
 
 
 class DistrictIndicator(Base):
