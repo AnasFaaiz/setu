@@ -8,6 +8,7 @@ from tasks.db import SessionLocal
 from tasks.schema import Feedback, DistrictIndicator
 from tasks.extractor import extract_batch
 from tasks.batch_extraction import validate_batch
+from datetime import datetime, timedelta
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
 MAX_WAIT = int(os.getenv("BATCH_MAX_WAIT", "30"))
@@ -53,6 +54,25 @@ def claim_batch() -> list[dict]:
     finally:
         session.close()
 
+def sweep_stuck_rows(stuck_after_minutes: int = 10) -> int:
+    """Reset rows stuck in 'processing' for too long back to 'received'."""
+    session = SessionLocal()
+    try:
+        cutoff=datetime.now(datetime.UTC) - timedelta(minutes=stuck_after_minutes)
+        stuck = session.execute(
+            select(Feedback)
+            .where(Feedback.status == "processing")
+            .where(Feedback.created_at < cutoff)
+        ).scalars().all()
+
+        for row in stuck:
+            row.status = "received"
+
+        session.commit()
+        return len(stuck)
+    finally:
+        session.close()
+
 def save_results(batch: list[dict], good: dict, bad: dict) -> None:
     attempts = {b["id"]: b["attempts"] for b in batch}
     session = SessionLocal()
@@ -83,8 +103,15 @@ def run() -> None:
           f"batch size {BATCH_SIZE}, max wait {MAX_WAIT}s, extractor={os.getenv('EXTRACTOR', 'gemini')}")
 
     last_flush = time.monotonic()
+    last_sweep = time.monotonic()
 
     while True:
+        if time.monotonic() - last_sweep >= 60:
+            recovered = sweep_stuck_rows()
+            if recovered:
+                print(f"[collector] recovered {recovered} stuck row(s)")
+            last_sweep = time.monotonic()
+
         waiting = count_received()
         due = waiting >= BATCH_SIZE or (waiting > 0 and time.monotonic() - last_flush >= MAX_WAIT)
         if not due:
