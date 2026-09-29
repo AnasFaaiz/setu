@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setu — District Priority Briefing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --ink: #1C2B33;
+    --paper: #F7F5F0;
+    --paper-raised: #FFFFFF;
+    --accent: #B5793A;
+    --accent-soft: #E8D9C3;
+    --slate: #5C7A89;
+    --hairline: #D8D3C7;
+    --muted: #7A756A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 2.5rem 2rem 1.5rem;
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .masthead .kicker {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--slate);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .masthead h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 2.1rem;
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead p {
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 62ch;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 4rem;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0 1.25rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 0.5rem;
+  }
+
+  .status-bar button {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    background: none;
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    padding: 0.4rem 0.85rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .status-bar button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .synthetic-note {
+    font-size: 0.82rem;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: #6b4a1f;
+    padding: 0.65rem 0.9rem;
+    border-radius: 3px;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .row {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .row-head {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr auto auto auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0.25rem;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .row-head:hover { background: rgba(0,0,0,0.02); }
+
+  .rank {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .district-name {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .district-state {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 400;
+    display: block;
+    margin-top: 0.1rem;
+  }
+
+  .topic-tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 2px;
+    background: #EEF2EE;
+    color: #3E5E45;
+    white-space: nowrap;
+    text-transform: lowercase;
+  }
+  .topic-tag.roads { background: #EFE7DC; color: #5C4629; }
+  .topic-tag.water { background: #E1EBF0; color: #2C5266; }
+  .topic-tag.electricity { background: #F5E9D4; color: #7A5A17; }
+  .topic-tag.health { background: #F3E1E1; color: #7A2E2E; }
+  .topic-tag.sanitation { background: #E9E4EE; color: #503A6E; }
+  .topic-tag.other { background: #EAEAEA; color: #555; }
+
+  .count {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: var(--ink);
+    text-align: right;
+  }
+  .count .label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .score-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .score-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-width: 3.2rem;
+    text-align: right;
+  }
+  .score-bar-track {
+    width: 60px;
+    height: 5px;
+    background: var(--hairline);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  .chevron {
+    color: var(--muted);
+    font-size: 0.75rem;
+    transition: transform 0.15s ease;
+    text-align: center;
+  }
+  .row.expanded .chevron { transform: rotate(90deg); }
+
+  .row-detail {
+    display: none;
+    padding: 0 0.25rem 1.5rem 3.2rem;
+  }
+  .row.expanded .row-detail { display: block; }
+
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    padding: 1rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  .breakdown div { font-size: 0.82rem; }
+  .breakdown .bd-label {
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  .breakdown .bd-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .why {
+    font-size: 0.85rem;
+    color: var(--slate);
+    line-height: 1.55;
+    margin: 0 0 1.1rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--accent-soft);
+  }
+
+  .complaints-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
+  }
+
+  .complaint {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  .complaint:last-child { border-bottom: none; }
+  .complaint-meta {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    margin-top: 0.3rem;
+  }
+  .urgency-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    display: inline-block;
+  }
+  .urgency-high { background: #A6403F; }
+  .urgency-medium { background: var(--accent); }
+  .urgency-low { background: var(--slate); }
+  .complaint-meta span { font-size: 0.75rem; color: var(--muted); }
+
+  .empty, .loading {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 640px) {
+    .row-head { grid-template-columns: 1.6rem 1fr auto auto; }
+    .count, .topic-tag { display: none; }
+    .breakdown { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="kicker">SETU — DIGITAL PUBLIC INFRASTRUCTURE</div>
+  <h1>District Priority Briefing</h1>
+  <p>Citizen infrastructure complaints, aggregated and ranked against population and existing infrastructure gaps, to guide where public investment is most needed.</p>
+</div>
+
+<div class="container">
+  <div class="synthetic-note">
+    This briefing is generated from a set of synthetic demonstration complaints, clearly labeled as such, run through the same live ingestion, AI extraction, and scoring pipeline that would process real citizen submissions. No real citizen data is shown here.
+  </div>
+
+  <div class="status-bar">
+    <span id="status-text">Loading district rankings…</span>
+    <button onclick="loadHotspots()">Refresh</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+let currentData = [];
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function titleCase(s) {
+  return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function scoreBarWidth(score, maxScore) {
+  if (maxScore <= 0) return 0;
+  return Math.max(4, Math.min(100, (score / maxScore) * 100));
+}
+
+function whyText(d) {
+  const rate = d.complaint_rate_per_100k.toFixed(1);
+  const gap = Math.round(d.infra_gap * 100);
+  return `Ranked from ${d.feedback_count} complaints (${rate} per 100,000 residents, adjusted for population) and an infrastructure access gap of ${gap}% relative to baseline. Dominant issue: ${d.dominant_topic}.`;
+}
+
+async function loadHotspots() {
+  const statusEl = document.getElementById('status-text');
+  const listEl = document.getElementById('list');
+  statusEl.textContent = "Loading district rankings…";
+  listEl.innerHTML = '<div class="loading">Fetching latest scores…</div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/hotspots?limit=20`);
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const data = await res.json();
+    currentData = data;
+
+    if (!data.length) {
+      listEl.innerHTML = '<div class="empty">No scored districts yet. Run the fusion job after processing some feedback.</div>';
+      statusEl.textContent = "No data available";
+      return;
+    }
+
+    const maxScore = Math.max(...data.map(d => d.priority_score));
+    listEl.innerHTML = data.map((d, i) => renderRow(d, i, maxScore)).join('');
+    statusEl.textContent = `${data.length} districts ranked — updated ${new Date(data[0].computed_at).toLocaleString()}`;
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty">Couldn't reach the API at ${API_BASE}. Make sure your Docker containers are running.<br><span style="font-size:0.78rem">${escapeHtml(err.message)}</span></div>`;
+    statusEl.textContent = "Connection failed";
+  }
+}
+
+function renderRow(d, i, maxScore) {
+  const districtId = d.district.replace(/[^a-z0-9]/gi, '');
+  return `
+    <div class="row" id="row-${districtId}">
+      <div class="row-head" onclick="toggleRow('${districtId}', '${d.district}')">
+        <div class="rank">${i + 1}</div>
+        <div>
+          <div class="district-name">${titleCase(d.district)}</div>
+        </div>
+        <div class="topic-tag ${d.dominant_topic}">${d.dominant_topic}</div>
+        <div class="count">${d.feedback_count}<span class="label">complaints</span></div>
+        <div class="score-cell">
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${scoreBarWidth(d.priority_score, maxScore)}%"></div></div>
+          <div class="score-value">${d.priority_score.toFixed(2)}</div>
+        </div>
+        <div class="chevron">▸</div>
+      </div>
+      <div class="row-detail" id="detail-${districtId}"></div>
+    </div>
+  `;
+}
+
+async function toggleRow(districtId, district) {
+  const row = document.getElementById(`row-${districtId}`);
+  const detail = document.getElementById(`detail-${districtId}`);
+  const wasExpanded = row.classList.contains('expanded');
+
+  row.classList.toggle('expanded');
+  if (wasExpanded) return;
+  if (detail.dataset.loaded) return;
+
+  detail.innerHTML = '<div class="loading">Loading detail…</div>';
+  try {
+    const res = await fetch(`${API_BASE}/hotspots/${encodeURIComponent(district)}`);
+    const d = await res.json();
+    if (d.error) {
+      detail.innerHTML = `<div class="empty">${escapeHtml(d.error)}</div>`;
+      return;
+    }
+    detail.innerHTML = `
+      <div class="breakdown">
+        <div><span class="bd-label">Complaint rate</span><span class="bd-value">${d.complaint_rate_per_100k.toFixed(2)} / 100k</span></div>
+        <div><span class="bd-label">Infrastructure gap</span><span class="bd-value">${Math.round(d.infra_gap * 100)}%</span></div>
+        <div><span class="bd-label">Est. population</span><span class="bd-value">${d.current_population_estimate.toLocaleString()}</span></div>
+        <div><span class="bd-label">Literacy rate</span><span class="bd-value">${d.literacy_rate ? Math.round(d.literacy_rate * 100) + '%' : '—'}</span></div>
+      </div>
+      <p class="why">${whyText(d)}</p>
+      <div class="complaints-label">Complaints feeding this score (${d.complaints.length})</div>
+      ${d.complaints.map(c => `
+        <div class="complaint">
+          ${escapeHtml(c.text)}
+          <div class="complaint-meta">
+            <span class="urgency-dot urgency-${c.urgency}"></span>
+            <span>${c.urgency} urgency</span>
+            <span>·</span>
+            <span>${c.topic}</span>
+          </div>
+        </div>
+      `).join('')}
+    `;
+    detail.dataset.loaded = "1";
+  } catch (err) {
+    detail.innerHTML = `<div class="empty">Failed to load detail: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+loadHotspots();
+</script>
+
+</body>
+</html>

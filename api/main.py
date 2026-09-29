@@ -2,11 +2,18 @@ import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
+from sqlalchemy import select
 from tasks.db import SessionLocal
-from tasks.schema import Feedback
+from tasks.schema import Feedback, HotspotScore, DistrictIndicator
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class FeedbackInput(BaseModel):
     raw_input: str
@@ -50,6 +57,75 @@ def status(feedback_id: str):
             "topic": entry.topic,
             "district": entry.district,
             "urgency": entry.urgency,
+        }
+    finally:
+        session.close()
+
+
+@app.get("/hotspots")
+def list_hotspots(limit: int = 20):
+    session = SessionLocal()
+    try:
+        rows = session.execute(
+            select(HotspotScore)
+            .order_by(HotspotScore.priority_score.desc())
+            .limit(limit)
+        ).scalars().all()
+
+        return [
+            {
+                "district": r.district,
+                "priority_score": float(r.priority_score),
+                "feedback_count": r.feedback_count,
+                "dominant_topic": r.dominant_topic,
+                "complaint_rate_per_100k": float(r.complaint_rate_per_100k),
+                "infra_gap": float(r.infra_gap),
+                "current_population_estimate": r.current_population_estimate,
+                "computed_at": r.computed_at.isoformat() if r.computed_at else None,
+            }
+            for r in rows
+        ]
+    finally:
+        session.close()
+
+
+@app.get("/hotspots/{district}")
+def hotspot_detail(district: str):
+    session = SessionLocal()
+    try:
+        district = district.lower().strip()
+        score = session.get(HotspotScore, district)
+        if score is None:
+            return {"error": "no score found for this district"}
+
+        indicator = session.get(DistrictIndicator, district)
+
+        complaints = session.execute(
+            select(Feedback.raw_input, Feedback.topic, Feedback.urgency, Feedback.created_at)
+            .where(Feedback.district == district)
+            .where(Feedback.status == "processed")
+            .order_by(Feedback.created_at.desc())
+        ).all()
+
+        return {
+            "district": district,
+            "priority_score": float(score.priority_score),
+            "feedback_count": score.feedback_count,
+            "dominant_topic": score.dominant_topic,
+            "complaint_rate_per_100k": float(score.complaint_rate_per_100k),
+            "infra_gap": float(score.infra_gap),
+            "current_population_estimate": score.current_population_estimate,
+            "state": indicator.state if indicator else None,
+            "literacy_rate": float(indicator.literacy_rate) if indicator else None,
+            "complaints": [
+                {
+                    "text": c.raw_input,
+                    "topic": c.topic,
+                    "urgency": c.urgency,
+                    "submitted_at": c.created_at.isoformat() if c.created_at else None,
+                }
+                for c in complaints
+            ],
         }
     finally:
         session.close()
