@@ -8,12 +8,14 @@ from tasks.db import SessionLocal
 from tasks.schema import Feedback, DistrictIndicator
 from tasks.extractor import extract_batch
 from tasks.batch_extraction import validate_batch
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
 MAX_WAIT = int(os.getenv("BATCH_MAX_WAIT", "30"))
 POLL = int(os.getenv("COLLECTOR_POLL_SECONDS", "2"))
 MAX_ATTEMPTS = int(os.getenv("MAX_ATTEMPTS", "3"))
+MAX_GEMINI_CALLS = int(os.getenv("MAX_GEMINI_CALLS_PER_RUN", "50"))
+gemini_call_count = 0
 
 def load_valid_districts() -> list[str]:
     session = SessionLocal()
@@ -58,7 +60,7 @@ def sweep_stuck_rows(stuck_after_minutes: int = 10) -> int:
     """Reset rows stuck in 'processing' for too long back to 'received'."""
     session = SessionLocal()
     try:
-        cutoff=datetime.now(datetime.UTC) - timedelta(minutes=stuck_after_minutes)
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=stuck_after_minutes)
         stuck = session.execute(
             select(Feedback)
             .where(Feedback.status == "processing")
@@ -125,9 +127,17 @@ def run() -> None:
 
         ids = [b["id"] for b in batch]
         print(f"[collector] processing batch of {len(batch)}")
+            
+        global gemini_call_count
+        if gemini_call_count >= MAX_GEMINI_CALLS:
+            print(f"[collector] call budget exhausted ({gemini_call_count}/{MAX_GEMINI_CALLS}), skipping batch")
+            save_results(batch, {}, {i: "call budget exhausted for this run" for i in ids})
+            time.sleep(30)
+            continue
 
         try:
             raw = extract_batch([{"id": b["id"], "text": b["text"]} for b in batch])
+            gemini_call_count += 1
         except Exception as e:
             message = str(e)
             print(f"[collector] extractor failed: {message[:200]}")
