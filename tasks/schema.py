@@ -40,3 +40,6 @@ class HotspotScore(Base):
     dominant_topic = Column(String)
     priority_score = Column(Numeric)
     computed_at = Column(DateTime, default=datetime.utcnow)
+    complaint_rate_per_100k = Column(Numeric)
+    infra_gap = Column(Numeric)
+    current_population_estimate = Column(Integer)
