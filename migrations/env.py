@@ -10,7 +10,7 @@ config = context.config
 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from tasks.db import Base 
+from tasks.db import Base
 from tasks import schema
 
 # Interpret the config file for Python logging.
@@ -32,6 +32,13 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def get_url():
+    """DATABASE_URL env var takes priority over alembic.ini's sqlalchemy.url,
+    so the same migrations can target different databases (local Docker
+    Postgres vs a deployed one) without editing alembic.ini."""
+    return os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -44,7 +51,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -63,8 +70,10 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
