@@ -191,13 +191,68 @@
     margin: 0 0 1rem;
   }
 
-  .my-complaints {
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .filter-row select {
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+  .filter-count {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .breakdown-row {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    padding: 1rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    margin-bottom: 1.25rem;
+  }
+  .breakdown-group {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 0.4rem;
+  }
+  .breakdown-group-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .breakdown-chips {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .breakdown-chip {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .breakdown-chip b { font-variant-numeric: tabular-nums; }
+
+  .public-complaints {
+    display: flex;
+    flex-direction: column;
     border-top: 1px solid var(--hairline);
   }
-  .my-complaint {
+  .public-complaint {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -205,28 +260,31 @@
     padding: 0.9rem 0;
     border-bottom: 1px solid var(--hairline);
   }
-  .my-complaint-text {
-    font-size: 0.88rem;
-    line-height: 1.5;
+  .public-complaint-main {
     flex: 1;
   }
-  .my-complaint-meta {
+  .public-complaint-text {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 0.3rem;
+  }
+  .public-complaint-meta {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-shrink: 0;
   }
-  .status-pill {
+  .public-complaint-meta span {
     font-size: 0.75rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    white-space: nowrap;
-    font-weight: 500;
+    color: var(--muted);
   }
-  .status-pill.received { background: #EAEAEA; color: #555; }
-  .status-pill.processing { background: #FAEEDA; color: #854F0B; }
-  .status-pill.processed { background: #EAF3DE; color: #3b6d11; }
-  .status-pill.needs_review, .status-pill.failed { background: #FAECE7; color: #993C1D; }
+  .public-complaint-district {
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 120px;
+  }
 
   .row {
     border-bottom: 1px solid var(--hairline);
@@ -271,6 +329,11 @@
   .topic-tag.health { background: #F3E1E1; color: #7A2E2E; }
   .topic-tag.sanitation { background: #E9E4EE; color: #503A6E; }
   .topic-tag.other { background: #EAEAEA; color: #555; }
+
+  .urgency-chip { background: #EAEAEA; color: #555; }
+  .urgency-chip.high { background: #FAECE7; color: #993C1D; }
+  .urgency-chip.medium { background: #FAEEDA; color: #854F0B; }
+  .urgency-chip.low { background: #E6F1FB; color: #185FA5; }
 
   .count {
     font-variant-numeric: tabular-nums;
@@ -400,6 +463,7 @@
     .row-head { grid-template-columns: 1.6rem 1fr auto auto; }
     .count, .topic-tag { display: none; }
     .breakdown { grid-template-columns: 1fr 1fr; }
+    .filter-count { margin-left: 0; width: 100%; }
   }
 </style>
 </head>
@@ -431,9 +495,22 @@
     </div>
   </form>
 
-  <div class="section-title">Your complaints</div>
-  <p class="section-sub">Tracked in this browser only. Status updates once the batching collector processes them.</p>
-  <div id="my-complaints"></div>
+  <div class="section-title">Complaints</div>
+  <p class="section-sub">Every processed complaint, public and anonymous. No names or contact details are collected.</p>
+  <div class="filter-row">
+    <select id="district-filter" onchange="applyFilters()">
+      <option value="">All districts</option>
+    </select>
+    <select id="time-filter" onchange="applyFilters()">
+      <option value="all">All time</option>
+      <option value="1">Last 24 hours</option>
+      <option value="7">Last 7 days</option>
+      <option value="30">Last 30 days</option>
+    </select>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+  <div id="breakdown-summary"></div>
+  <div id="public-complaints"></div>
 
   <div class="status-bar" style="margin-top:2.5rem">
     <span id="status-text">Loading district rankings…</span>
@@ -445,8 +522,8 @@
 
 <script>
 const API_BASE = "https://setu-pyop.onrender.com";
-const MY_COMPLAINTS_KEY = "setu_my_complaints";
 let currentData = [];
+let allComplaints = [];
 let toastTimer = null;
 
 function escapeHtml(str) {
@@ -482,53 +559,111 @@ function whyText(d) {
   return `Ranked from ${d.feedback_count} complaints (${rate} per 100,000 residents, adjusted for population) and an infrastructure access gap of ${gap}% relative to baseline. Score adjusted ×${adj} for low digital/literacy access, since underserved districts are structurally less likely to report complaints digitally.${dedup} Dominant issue: ${d.dominant_topic}.`;
 }
 
-function getMyComplaints() {
+async function loadDistrictOptions() {
+  const selectEl = document.getElementById('district-filter');
   try {
-    return JSON.parse(localStorage.getItem(MY_COMPLAINTS_KEY) || '[]');
-  } catch { return []; }
+    const res = await fetch(`${API_BASE}/complaints/districts`);
+    const districts = await res.json();
+    districts.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = titleCase(d);
+      selectEl.appendChild(opt);
+    });
+  } catch (err) {
+    // dropdown just stays at "All districts" if this fails
+  }
 }
 
-function saveMyComplaints(list) {
+async function loadPublicComplaints() {
+  const el = document.getElementById('public-complaints');
+  el.innerHTML = '<div class="loading">Loading complaints…</div>';
   try {
-    localStorage.setItem(MY_COMPLAINTS_KEY, JSON.stringify(list.slice(0, 20)));
-  } catch {}
+    const res = await fetch(`${API_BASE}/complaints?limit=200`);
+    allComplaints = await res.json();
+    applyFilters();
+  } catch (err) {
+    el.innerHTML = `<div class="empty">Couldn't load complaints.<br><span style="font-size:0.78rem">${escapeHtml(err.message)}</span></div>`;
+  }
 }
 
-function addMyComplaint(id, text) {
-  const list = getMyComplaints();
-  list.unshift({ id, text, submitted_at: new Date().toISOString() });
-  saveMyComplaints(list);
-  renderMyComplaints();
+function renderBreakdown(filtered) {
+  const el = document.getElementById('breakdown-summary');
+  if (!filtered.length) { el.innerHTML = ''; return; }
+
+  const topicCounts = {};
+  const urgencyCounts = {};
+  filtered.forEach(c => {
+    const t = c.topic || 'other';
+    const u = c.urgency || 'unknown';
+    topicCounts[t] = (topicCounts[t] || 0) + 1;
+    urgencyCounts[u] = (urgencyCounts[u] || 0) + 1;
+  });
+
+  const topicOrder = ['roads', 'water', 'electricity', 'health', 'sanitation', 'other'];
+  const urgencyOrder = ['high', 'medium', 'low'];
+
+  const topicChips = topicOrder
+    .filter(t => topicCounts[t])
+    .map(t => `<span class="breakdown-chip topic-tag ${t}"><b>${topicCounts[t]}</b> ${t}</span>`)
+    .join('');
+
+  const urgencyChips = urgencyOrder
+    .filter(u => urgencyCounts[u])
+    .map(u => `<span class="breakdown-chip urgency-chip ${u}"><b>${urgencyCounts[u]}</b> ${u}</span>`)
+    .join('');
+
+  el.innerHTML = `
+    <div class="breakdown-row">
+      <div class="breakdown-group">
+        <span class="breakdown-group-label">By topic</span>
+        <div class="breakdown-chips">${topicChips}</div>
+      </div>
+      <div class="breakdown-group">
+        <span class="breakdown-group-label">By urgency</span>
+        <div class="breakdown-chips">${urgencyChips}</div>
+      </div>
+    </div>
+  `;
 }
 
-async function renderMyComplaints() {
-  const list = getMyComplaints();
-  const el = document.getElementById('my-complaints');
+function applyFilters() {
+  const district = document.getElementById('district-filter').value;
+  const timeRange = document.getElementById('time-filter').value;
+  const el = document.getElementById('public-complaints');
+  const countEl = document.getElementById('filter-count');
 
-  if (!list.length) {
-    el.innerHTML = '<div class="empty-small">Nothing submitted yet from this browser.</div>';
+  let filtered = allComplaints;
+
+  if (district) {
+    filtered = filtered.filter(c => c.district === district);
+  }
+
+  if (timeRange !== 'all') {
+    const cutoff = Date.now() - (Number(timeRange) * 24 * 60 * 60 * 1000);
+    filtered = filtered.filter(c => c.submitted_at && new Date(c.submitted_at).getTime() >= cutoff);
+  }
+
+  countEl.textContent = `${filtered.length} complaint${filtered.length === 1 ? '' : 's'}`;
+  renderBreakdown(filtered);
+
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-small">No complaints match this filter.</div>';
     return;
   }
 
-  el.innerHTML = '<div class="empty-small">Checking status…</div>';
-
-  const results = await Promise.all(list.map(async (item) => {
-    try {
-      const res = await fetch(`${API_BASE}/status/${item.id}`);
-      const data = await res.json();
-      return { ...item, status: data.status || 'unknown', topic: data.topic, district: data.district, urgency: data.urgency };
-    } catch {
-      return { ...item, status: 'unknown' };
-    }
-  }));
-
-  el.innerHTML = '<div class="my-complaints">' + results.map(r => `
-    <div class="my-complaint">
-      <div class="my-complaint-text">${escapeHtml(r.text)}</div>
-      <div class="my-complaint-meta">
-        ${r.topic ? `<span class="topic-tag ${r.topic}">${r.topic}</span>` : ''}
-        <span class="status-pill ${r.status}">${r.status.replace('_', ' ')}</span>
+  el.innerHTML = '<div class="public-complaints">' + filtered.map(c => `
+    <div class="public-complaint">
+      <div class="public-complaint-main">
+        <div class="public-complaint-text">${escapeHtml(c.text)}</div>
+        <div class="public-complaint-meta">
+          <span class="topic-tag ${c.topic || 'other'}">${c.topic || 'unclassified'}</span>
+          <span>${c.urgency || '—'} urgency</span>
+          <span>·</span>
+          <span>${c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—'}</span>
+        </div>
       </div>
+      <div class="public-complaint-district">${c.district ? titleCase(c.district) : '—'}</div>
     </div>
   `).join('') + '</div>';
 }
@@ -552,7 +687,6 @@ async function submitComplaint(event) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `API returned ${res.status}`);
     showToast('Complaint submitted.');
-    addMyComplaint(data.id, text);
     textEl.value = '';
   } catch (err) {
     showToast(`Failed to submit: ${err.message}`, true);
@@ -657,7 +791,8 @@ async function toggleRow(districtId, district) {
 }
 
 loadHotspots();
-renderMyComplaints();
+loadDistrictOptions();
+loadPublicComplaints();
 </script>
 
 </body>
