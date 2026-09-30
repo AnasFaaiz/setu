@@ -179,60 +179,88 @@
     line-height: 1.5;
   }
 
-  .section-title {
-    font-family: 'Source Serif 4', serif;
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 2.5rem 0 0.25rem;
+  /* Complaints section — framed as one cohesive card */
+  .complaints-section {
+    margin-top: 2.75rem;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    background: var(--paper-raised);
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,43,51,0.04);
   }
-  .section-sub {
-    font-size: 0.82rem;
+  .complaints-section-head {
+    padding: 1.4rem 1.6rem 1.2rem;
+    border-bottom: 1px solid var(--hairline);
+    background: linear-gradient(180deg, #fff, #fdfcfa);
+  }
+  .complaints-section-title {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+  .complaints-section-title .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3E5E45;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .complaints-section-sub {
+    font-size: 0.83rem;
     color: var(--muted);
-    margin: 0 0 1rem;
+    margin: 0;
   }
 
   .filter-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    gap: 0.6rem;
+    padding: 1rem 1.6rem;
+    border-bottom: 1px solid var(--hairline);
     flex-wrap: wrap;
+    background: #FBFAF7;
   }
   .filter-row select {
     font-family: inherit;
     font-size: 0.82rem;
-    padding: 0.45rem 0.6rem;
+    padding: 0.5rem 0.7rem;
     border: 1px solid var(--hairline);
-    border-radius: 3px;
+    border-radius: 6px;
     background: var(--paper-raised);
     color: var(--ink);
+    cursor: pointer;
   }
+  .filter-row select:hover { border-color: var(--slate); }
   .filter-count {
     font-size: 0.8rem;
     color: var(--muted);
     margin-left: auto;
+    font-variant-numeric: tabular-nums;
   }
 
   .breakdown-row {
     display: flex;
-    gap: 28px;
+    gap: 32px;
     flex-wrap: wrap;
-    padding: 1rem 1.1rem;
-    background: var(--paper-raised);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    margin-bottom: 1.25rem;
+    padding: 1rem 1.6rem;
+    border-bottom: 1px solid var(--hairline);
   }
   .breakdown-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.45rem;
   }
   .breakdown-group-label {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    font-weight: 500;
   }
   .breakdown-chips {
     display: flex;
@@ -241,17 +269,15 @@
   }
   .breakdown-chip {
     font-size: 0.78rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: 2px;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
     white-space: nowrap;
   }
   .breakdown-chip b { font-variant-numeric: tabular-nums; }
 
   .table-wrap {
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    background: var(--paper-raised);
-    height: 480px;
+    max-height: min(560px, 62vh);
+    min-height: 140px;
     overflow-y: auto;
     overflow-x: auto;
   }
@@ -264,27 +290,35 @@
   .complaints-table thead th {
     position: sticky;
     top: 0;
-    background: var(--paper-raised);
+    background: #FBFAF7;
     text-align: left;
     font-weight: 600;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: var(--muted);
-    padding: 0.7rem 0.9rem;
+    padding: 0.75rem 1.6rem;
     border-bottom: 1px solid var(--hairline);
     z-index: 1;
   }
   .complaints-table td {
-    padding: 0.7rem 0.9rem;
+    padding: 0.75rem 1.6rem;
     border-bottom: 1px solid var(--hairline);
     vertical-align: top;
   }
   .complaints-table tbody tr:last-child td { border-bottom: none; }
-  .complaints-table tbody tr:hover { background: rgba(0,0,0,0.015); }
-  .td-text { max-width: 320px; line-height: 1.5; }
+  .complaints-table tbody tr {
+    transition: background 0.1s ease;
+  }
+  .complaints-table tbody tr:hover { background: #FAF8F3; }
+  .td-text { max-width: 320px; line-height: 1.55; }
   .td-district { font-family: 'Source Serif 4', serif; font-weight: 600; white-space: nowrap; }
   .td-date { white-space: nowrap; color: var(--muted); font-size: 0.82rem; }
+
+  .table-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+  .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 8px; }
+  .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--slate); }
 
   .row {
     border-bottom: 1px solid var(--hairline);
@@ -316,8 +350,8 @@
 
   .topic-tag {
     font-size: 0.75rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: 2px;
+    padding: 0.22rem 0.6rem;
+    border-radius: 20px;
     background: #EEF2EE;
     color: #3E5E45;
     white-space: nowrap;
@@ -454,9 +488,10 @@
     font-size: 0.9rem;
   }
   .empty-small {
-    padding: 1rem 0;
+    padding: 1.75rem 1.6rem;
     color: var(--muted);
     font-size: 0.85rem;
+    text-align: center;
   }
 
   @media (max-width: 640px) {
@@ -464,6 +499,8 @@
     .count, .topic-tag { display: none; }
     .breakdown { grid-template-columns: 1fr 1fr; }
     .filter-count { margin-left: 0; width: 100%; }
+    .complaints-section-head, .filter-row, .breakdown-row { padding-left: 1.1rem; padding-right: 1.1rem; }
+    .complaints-table th, .complaints-table td { padding: 0.7rem 1.1rem; }
   }
 </style>
 </head>
@@ -495,22 +532,26 @@
     </div>
   </form>
 
-  <div class="section-title">Complaints</div>
-  <p class="section-sub">Every processed complaint, public and anonymous. No names or contact details are collected.</p>
-  <div class="filter-row">
-    <select id="district-filter" onchange="applyFilters()">
-      <option value="">All districts</option>
-    </select>
-    <select id="time-filter" onchange="applyFilters()">
-      <option value="all">All time</option>
-      <option value="1">Last 24 hours</option>
-      <option value="7">Last 7 days</option>
-      <option value="30">Last 30 days</option>
-    </select>
-    <span class="filter-count" id="filter-count"></span>
+  <div class="complaints-section">
+    <div class="complaints-section-head">
+      <h2 class="complaints-section-title"><span class="live-dot"></span>Complaints</h2>
+      <p class="complaints-section-sub">Every processed complaint, public and anonymous. No names or contact details are collected.</p>
+    </div>
+    <div class="filter-row">
+      <select id="district-filter" onchange="applyFilters()">
+        <option value="">All districts</option>
+      </select>
+      <select id="time-filter" onchange="applyFilters()">
+        <option value="all">All time</option>
+        <option value="1">Last 24 hours</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+    <div id="breakdown-summary"></div>
+    <div id="public-complaints"></div>
   </div>
-  <div id="breakdown-summary"></div>
-  <div id="public-complaints"></div>
 
   <div class="status-bar" style="margin-top:2.5rem">
     <span id="status-text">Loading district rankings…</span>
@@ -662,8 +703,16 @@ function applyFilters() {
     </tr>
   `).join('');
 
+  // Table height adapts to row count: few rows sit snug, many rows cap the
+  // scroll area rather than pushing the page height indefinitely.
+  const rowHeight = 52;
+  const headerHeight = 41;
+  const naturalHeight = headerHeight + (filtered.length * rowHeight);
+  const capped = Math.min(naturalHeight, 560);
+  const tableHeight = Math.max(capped, Math.min(naturalHeight, 140));
+
   el.innerHTML = `
-    <div class="table-wrap">
+    <div class="table-wrap" style="height:${tableHeight}px">
       <table class="complaints-table">
         <thead>
           <tr>
