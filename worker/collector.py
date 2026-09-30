@@ -49,6 +49,7 @@ def claim_batch() -> list[dict]:
         batch = []
         for row in rows:
             row.status = "processing"
+            row.claimed_at = datetime.utcnow()
             row.attempts += 1
             batch.append({"id": str(row.id), "text": row.raw_input, "attempts": row.attempts})
         session.commit()
@@ -60,11 +61,11 @@ def sweep_stuck_rows(stuck_after_minutes: int = 10) -> int:
     """Reset rows stuck in 'processing' for too long back to 'received'."""
     session = SessionLocal()
     try:
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=stuck_after_minutes)
+        cutoff = datetime.utcnow() - timedelta(minutes=stuck_after_minutes)
         stuck = session.execute(
             select(Feedback)
             .where(Feedback.status == "processing")
-            .where(Feedback.created_at < cutoff)
+            .where(Feedback.claimed_at < cutoff)
         ).scalars().all()
 
         for row in stuck:

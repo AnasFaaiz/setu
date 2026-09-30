@@ -6,6 +6,10 @@ from sqlalchemy import select
 from tasks.db import SessionLocal
 from tasks.schema import Feedback, HotspotScore, DistrictIndicator
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 app = FastAPI()
 app.add_middleware(
@@ -15,6 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 class FeedbackInput(BaseModel):
     raw_input: str
     language: Optional[str] = None
@@ -23,7 +31,8 @@ class FeedbackInput(BaseModel):
 
 
 @app.post("/submit-feedback")
-def submit_feedback(payload: FeedbackInput):
+@limiter.limit("20/minute")
+def submit_feedback(request: Request, payload: FeedbackInput):
     feedback_id = str(uuid.uuid4())
 
     session = SessionLocal()

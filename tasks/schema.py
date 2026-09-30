@@ -19,7 +19,7 @@ class Feedback(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     attempts = Column(Integer, nullable=False, default=0, server_default="0")
     error_reason = Column(Text, nullable=True)
-
+    claimed_at = Column(DateTime, nullable=True)
 
 class DistrictIndicator(Base):
     __tablename__ = "district_indicators"
