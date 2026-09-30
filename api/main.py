@@ -89,6 +89,8 @@ def list_hotspots(limit: int = 20):
                 "dominant_topic": r.dominant_topic,
                 "complaint_rate_per_100k": float(r.complaint_rate_per_100k),
                 "infra_gap": float(r.infra_gap),
+                "underreporting_multiplier": float(r.underreporting_multiplier),
+                "distinct_issue_count": r.distinct_issue_count,
                 "current_population_estimate": r.current_population_estimate,
                 "computed_at": r.computed_at.isoformat() if r.computed_at else None,
             }
@@ -123,6 +125,8 @@ def hotspot_detail(district: str):
             "dominant_topic": score.dominant_topic,
             "complaint_rate_per_100k": float(score.complaint_rate_per_100k),
             "infra_gap": float(score.infra_gap),
+            "underreporting_multiplier": float(score.underreporting_multiplier),
+            "distinct_issue_count": score.distinct_issue_count,
             "current_population_estimate": score.current_population_estimate,
             "state": indicator.state if indicator else None,
             "literacy_rate": float(indicator.literacy_rate) if indicator else None,

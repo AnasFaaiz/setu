@@ -204,8 +204,8 @@
 
   .breakdown {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.1rem;
     padding: 1rem 1.1rem;
     background: var(--paper-raised);
     border: 1px solid var(--hairline);
@@ -319,7 +319,11 @@ function scoreBarWidth(score, maxScore) {
 function whyText(d) {
   const rate = d.complaint_rate_per_100k.toFixed(1);
   const gap = Math.round(d.infra_gap * 100);
-  return `Ranked from ${d.feedback_count} complaints (${rate} per 100,000 residents, adjusted for population) and an infrastructure access gap of ${gap}% relative to baseline. Dominant issue: ${d.dominant_topic}.`;
+  const adj = d.underreporting_multiplier.toFixed(2);
+  const dedup = d.distinct_issue_count < d.feedback_count
+    ? ` ${d.feedback_count} reports were grouped into ${d.distinct_issue_count} distinct issues before scoring, so repeated reports of the same problem don't inflate the ranking.`
+    : '';
+  return `Ranked from ${d.feedback_count} complaints (${rate} per 100,000 residents, adjusted for population) and an infrastructure access gap of ${gap}% relative to baseline. Score adjusted ×${adj} for low digital/literacy access, since underserved districts are structurally less likely to report complaints digitally.${dedup} Dominant issue: ${d.dominant_topic}.`;
 }
 
 async function loadHotspots() {
@@ -392,6 +396,8 @@ async function toggleRow(districtId, district) {
       <div class="breakdown">
         <div><span class="bd-label">Complaint rate</span><span class="bd-value">${d.complaint_rate_per_100k.toFixed(2)} / 100k</span></div>
         <div><span class="bd-label">Infrastructure gap</span><span class="bd-value">${Math.round(d.infra_gap * 100)}%</span></div>
+        <div><span class="bd-label">Under-reporting adj.</span><span class="bd-value">×${d.underreporting_multiplier.toFixed(2)}</span></div>
+        <div><span class="bd-label">Distinct issues</span><span class="bd-value">${d.distinct_issue_count} of ${d.feedback_count}</span></div>
         <div><span class="bd-label">Est. population</span><span class="bd-value">${d.current_population_estimate.toLocaleString()}</span></div>
         <div><span class="bd-label">Literacy rate</span><span class="bd-value">${d.literacy_rate ? Math.round(d.literacy_rate * 100) + '%' : '—'}</span></div>
       </div>

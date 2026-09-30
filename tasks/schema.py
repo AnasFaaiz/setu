@@ -30,7 +30,7 @@ class DistrictIndicator(Base):
     infra_index = Column(Numeric)
     literacy_rate = Column(Numeric)
     last_updated = Column(DateTime, default=datetime.utcnow)
-
+    internet_access_rate = Column(Numeric)
 
 class HotspotScore(Base):
     __tablename__ = "hotspot_scores"
@@ -43,3 +43,5 @@ class HotspotScore(Base):
     complaint_rate_per_100k = Column(Numeric)
     infra_gap = Column(Numeric)
     current_population_estimate = Column(Integer)
+    underreporting_multiplier = Column(Numeric)
+    distinct_issue_count = Column(Integer)
