@@ -247,44 +247,44 @@
   }
   .breakdown-chip b { font-variant-numeric: tabular-nums; }
 
-  .public-complaints {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--hairline);
+  .table-wrap {
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    background: var(--paper-raised);
+    height: 480px;
+    overflow-y: auto;
+    overflow-x: auto;
   }
-  .public-complaint {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.9rem 0;
-    border-bottom: 1px solid var(--hairline);
+  .complaints-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
   }
-  .public-complaint-main {
-    flex: 1;
-  }
-  .public-complaint-text {
-    font-size: 0.88rem;
-    line-height: 1.5;
-    margin-bottom: 0.3rem;
-  }
-  .public-complaint-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .public-complaint-meta span {
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
-  .public-complaint-district {
-    font-family: 'Source Serif 4', serif;
-    font-size: 0.88rem;
+  .complaints-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--paper-raised);
+    text-align: left;
     font-weight: 600;
-    flex-shrink: 0;
-    text-align: right;
-    min-width: 120px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--hairline);
+    z-index: 1;
   }
+  .complaints-table td {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  .complaints-table tbody tr:last-child td { border-bottom: none; }
+  .complaints-table tbody tr:hover { background: rgba(0,0,0,0.015); }
+  .td-text { max-width: 320px; line-height: 1.5; }
+  .td-district { font-family: 'Source Serif 4', serif; font-weight: 600; white-space: nowrap; }
+  .td-date { white-space: nowrap; color: var(--muted); font-size: 0.82rem; }
 
   .row {
     border-bottom: 1px solid var(--hairline);
@@ -652,20 +652,32 @@ function applyFilters() {
     return;
   }
 
-  el.innerHTML = '<div class="public-complaints">' + filtered.map(c => `
-    <div class="public-complaint">
-      <div class="public-complaint-main">
-        <div class="public-complaint-text">${escapeHtml(c.text)}</div>
-        <div class="public-complaint-meta">
-          <span class="topic-tag ${c.topic || 'other'}">${c.topic || 'unclassified'}</span>
-          <span>${c.urgency || '—'} urgency</span>
-          <span>·</span>
-          <span>${c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—'}</span>
-        </div>
-      </div>
-      <div class="public-complaint-district">${c.district ? titleCase(c.district) : '—'}</div>
+  const rows = filtered.map(c => `
+    <tr>
+      <td class="td-text">${escapeHtml(c.text)}</td>
+      <td><span class="topic-tag ${c.topic || 'other'}">${c.topic || 'unclassified'}</span></td>
+      <td><span class="breakdown-chip urgency-chip ${c.urgency || ''}">${c.urgency || '—'}</span></td>
+      <td class="td-district">${c.district ? titleCase(c.district) : '—'}</td>
+      <td class="td-date">${c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—'}</td>
+    </tr>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table class="complaints-table">
+        <thead>
+          <tr>
+            <th>Complaint</th>
+            <th>Topic</th>
+            <th>Urgency</th>
+            <th>District</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
-  `).join('') + '</div>';
+  `;
 }
 
 async function submitComplaint(event) {
