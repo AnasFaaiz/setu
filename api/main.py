@@ -142,3 +142,47 @@ def hotspot_detail(district: str):
         }
     finally:
         session.close()
+
+@app.get("/complaints/districts")
+def list_complaint_districts():
+    session = SessionLocal()
+    try:
+        rows = session.execute(
+            select(Feedback.district)
+            .where(Feedback.status == "processed")
+            .where(Feedback.district.isnot(None))
+            .distinct()
+            .order_by(Feedback.district)
+        ).all()
+        return [r[0] for r in rows]
+    finally:
+        session.close()
+
+
+@app.get("/complaints")
+def list_complaints(district: Optional[str] = None, limit: int = 100):
+    session = SessionLocal()
+    try:
+        query = (
+            select(Feedback.id, Feedback.raw_input, Feedback.topic, Feedback.district, Feedback.urgency, Feedback.status, Feedback.created_at)
+            .where(Feedback.status == "processed")
+        )
+        if district:
+            query = query.where(Feedback.district == district.lower().strip())
+        query = query.order_by(Feedback.created_at.desc()).limit(limit)
+
+        rows = session.execute(query).all()
+        return [
+            {
+                "id": str(r.id),
+                "text": r.raw_input,
+                "topic": r.topic,
+                "district": r.district,
+                "urgency": r.urgency,
+                "status": r.status,
+                "submitted_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+    finally:
+        session.close()
