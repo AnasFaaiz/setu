@@ -298,7 +298,7 @@
 </div>
 
 <script>
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://setu-pyop.onrender.com";
 let currentData = [];
 
 function escapeHtml(str) {
@@ -348,7 +348,7 @@ async function loadHotspots() {
     listEl.innerHTML = data.map((d, i) => renderRow(d, i, maxScore)).join('');
     statusEl.textContent = `${data.length} districts ranked — updated ${new Date(data[0].computed_at).toLocaleString()}`;
   } catch (err) {
-    listEl.innerHTML = `<div class="empty">Couldn't reach the API at ${API_BASE}. Make sure your Docker containers are running.<br><span style="font-size:0.78rem">${escapeHtml(err.message)}</span></div>`;
+    listEl.innerHTML = `<div class="empty">Couldn't reach the API at ${API_BASE}.<br><span style="font-size:0.78rem">${escapeHtml(err.message)}</span></div>`;
     statusEl.textContent = "Connection failed";
   }
 }
@@ -402,8 +402,8 @@ async function toggleRow(districtId, district) {
         <div><span class="bd-label">Literacy rate</span><span class="bd-value">${d.literacy_rate ? Math.round(d.literacy_rate * 100) + '%' : '—'}</span></div>
       </div>
       <p class="why">${whyText(d)}</p>
-      <div class="complaints-label">Complaints feeding this score (${d.complaints.length})</div>
-      ${d.complaints.map(c => `
+      <div class="complaints-label">Complaints feeding this score (${d.complaints ? d.complaints.length : 0})</div>
+      ${(d.complaints || []).map(c => `
         <div class="complaint">
           ${escapeHtml(c.text)}
           <div class="complaint-meta">
