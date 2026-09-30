@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,6 +64,72 @@
     margin: 0 auto;
     padding: 1.5rem 2rem 4rem;
   }
+
+  .submit-form {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+  }
+  .submit-form .form-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
+  }
+  .submit-form textarea {
+    width: 100%;
+    min-height: 70px;
+    padding: 0.6rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    resize: vertical;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .submit-form textarea:focus, .submit-form select:focus {
+    outline: 1.5px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .submit-row select {
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .submit-row button {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 0.5rem 1.1rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .submit-row button:hover { background: #2E4550; }
+  .submit-row button:disabled { opacity: 0.5; cursor: default; }
+  #submit-status {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  #submit-status.success { color: #3E5E45; }
+  #submit-status.error { color: #A6403F; }
 
   .status-bar {
     display: flex;
@@ -287,8 +352,22 @@
 
 <div class="container">
   <div class="synthetic-note">
-    This briefing is generated from a set of synthetic demonstration complaints, clearly labeled as such, run through the same live ingestion, AI extraction, and scoring pipeline that would process real citizen submissions. No real citizen data is shown here.
+    The ranking below is generated from a set of synthetic demonstration complaints, clearly labeled as such, run through the same live ingestion, AI extraction, and scoring pipeline that would process real citizen submissions. No real citizen data is shown here. Anything you submit below goes through that same real pipeline — it will be picked up by the batching collector and extracted by Gemini, but won't appear in the ranking until the scoring job is next run.
   </div>
+
+  <form class="submit-form" id="submit-form" onsubmit="submitComplaint(event)">
+    <div class="form-label">Submit a complaint</div>
+    <textarea id="complaint-text" placeholder="Describe the issue, in any language — e.g. &quot;Sadak bahut kharab hai, Lucknow mein&quot;" required></textarea>
+    <div class="submit-row">
+      <select id="complaint-channel">
+        <option value="text">Text</option>
+        <option value="whatsapp"disabled>WhatsApp (coming soon)</option>
+        <option value="voice"disabled>Voice (coming soon)</option>
+      </select>
+      <button type="submit" id="submit-btn">Submit</button>
+      <span id="submit-status"></span>
+    </div>
+  </form>
 
   <div class="status-bar">
     <span id="status-text">Loading district rankings…</span>
@@ -325,6 +404,38 @@ function whyText(d) {
     ? ` ${d.feedback_count} reports were grouped into ${d.distinct_issue_count} distinct issues before scoring, so repeated reports of the same problem don't inflate the ranking.`
     : '';
   return `Ranked from ${d.feedback_count} complaints (${rate} per 100,000 residents, adjusted for population) and an infrastructure access gap of ${gap}% relative to baseline. Score adjusted ×${adj} for low digital/literacy access, since underserved districts are structurally less likely to report complaints digitally.${dedup} Dominant issue: ${d.dominant_topic}.`;
+}
+
+async function submitComplaint(event) {
+  event.preventDefault();
+  const textEl = document.getElementById('complaint-text');
+  const channelEl = document.getElementById('complaint-channel');
+  const statusEl = document.getElementById('submit-status');
+  const btnEl = document.getElementById('submit-btn');
+  const text = textEl.value.trim();
+  if (!text) return;
+
+  btnEl.disabled = true;
+  statusEl.className = '';
+  statusEl.textContent = "Submitting…";
+
+  try {
+    const res = await fetch(`${API_BASE}/submit-feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw_input: text, source_channel: channelEl.value })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `API returned ${res.status}`);
+    statusEl.className = 'success';
+    statusEl.textContent = `${data.message || 'Complaint logged.'} (id: ${data.id.slice(0, 8)}…)`;
+    textEl.value = '';
+  } catch (err) {
+    statusEl.className = 'error';
+    statusEl.textContent = `Failed to submit: ${err.message}`;
+  } finally {
+    btnEl.disabled = false;
+  }
 }
 
 async function loadHotspots() {
